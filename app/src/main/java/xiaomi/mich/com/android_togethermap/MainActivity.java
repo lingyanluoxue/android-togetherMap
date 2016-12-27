@@ -1,7 +1,7 @@
 package xiaomi.mich.com.android_togethermap;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,15 +14,19 @@ import com.amap.api.maps.MapView;
 import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.CameraPosition;
 import com.amap.api.maps.model.LatLng;
+import com.amap.api.maps.model.LatLngBounds;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
+import com.koushikdutta.ion.Ion;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 import xiaomi.mich.com.android_togethermap.model.DotInfo;
+import xiaomi.mich.com.android_togethermap.together.ClusterAmapItem;
 import xiaomi.mich.com.android_togethermap.together.MapTogetherManager;
 
 public class MainActivity extends AppCompatActivity {
@@ -43,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
      * marker数据集合
      */
     public Map<String, Marker> markerMap = new ConcurrentHashMap<>();
+    public Map<String, ClusterAmapItem> mClusterAmapItemMap = new ConcurrentHashMap<>();
 
     public static final int MARKER_NORMA = 1;
     public static final int MARKER_TOGE = 2;
@@ -81,7 +86,10 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         mapView.onResume();
 
-        updateNormalMarkers();
+
+        aMap.clear();
+        markerMap.clear();
+        showMarker(DotInfo.initData());
     }
 
     /**
@@ -168,7 +176,8 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "开始显示聚合网点,清空地图normal marker...");
         aMap.clear();
         // 更新聚合marker
-        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(markerMap);
+//        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(markerMap);
+        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(mClusterAmapItemMap);
 
         // 设置marker点击事件,若是聚合网点此时点击marker则放大地图显示正常网点
         aMap.setOnMarkerClickListener(new AMap.OnMarkerClickListener() {
@@ -188,22 +197,77 @@ public class MainActivity extends AppCompatActivity {
         if (dotList == null || dotList.size() == 0) {
             return;
         }
-
         for (int i = 0; i < dotList.size(); i++) {
             DotInfo dotInfo = dotList.get(i);
 
             MarkerOptions options = new MarkerOptions();
             options.anchor(0.5f, 1.0f);
-            options.position(new LatLng(dotInfo.getDotLat(), dotInfo.getDotLon()));
+            LatLng latLng = new LatLng(dotInfo.getDotLat(), dotInfo.getDotLon());
+            options.position(latLng);
 
-            setIconToOptions(options);
+//            setIconToOptions(options);
+
+            try {
+                options.icon(BitmapDescriptorFactory.fromBitmap(Ion.with(this)
+                        .load(dotInfo.getDotIcon()).asBitmap().get()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
 
             Marker marker = aMap.addMarker(options);
             marker.setObject(dotInfo);
-            marker.setZIndex(ORGZOON);
+//            marker.setZIndex(ORGZOON);
+
 
             markerMap.put(dotInfo.getDotId(), marker);
         }
+    }
+    private void showMarker(List<DotInfo> dotList) {
+        if (dotList == null || dotList.size() == 0) {
+            return;
+        }
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for (int i = 0; i < dotList.size(); i++) {
+            DotInfo dotInfo = dotList.get(i);
+
+            MarkerOptions options = new MarkerOptions();
+            options.anchor(0.5f, 1.0f);
+            LatLng latLng = new LatLng(dotInfo.getDotLat(), dotInfo.getDotLon());
+            options.position(latLng);
+
+//            setIconToOptions(options);
+
+            try {
+                options.icon(BitmapDescriptorFactory.fromBitmap(Ion.with(this)
+                        .load(dotInfo.getDotIcon()).asBitmap().get()));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+
+            Marker marker = aMap.addMarker(options);
+            marker.setObject(dotInfo);
+//            marker.setZIndex(ORGZOON);
+
+            builder.include(latLng);
+
+            ClusterAmapItem clusterAmapItem = new ClusterAmapItem();
+            clusterAmapItem.setMarker(marker);
+            clusterAmapItem.setMarkerUrl(dotInfo.getDotIcon());
+
+            markerMap.put(dotInfo.getDotId(), marker);
+            mClusterAmapItemMap.put(dotInfo.getDotId(), clusterAmapItem);
+        }
+        aMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
+        Log.d("tag","size:"+markerMap.size());
+
+        aMap.clear();
+        // 更新聚合marker
+//        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(markerMap);
+        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(mClusterAmapItemMap);
     }
 
     /**

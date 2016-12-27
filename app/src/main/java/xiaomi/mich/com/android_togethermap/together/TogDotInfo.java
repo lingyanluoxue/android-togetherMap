@@ -16,6 +16,7 @@ class TogDotInfo {
 	private Point mPoint;// 中心网点
 	private LatLng mLatLng;// 中心网点经纬度
 	private List<Marker> mClusterItems;// 网点列表
+	private String firstMarkerIcon;
 	private int dotCount;// 网点个数
 	private TextView textView;// 聚合网点显示
 
@@ -24,6 +25,14 @@ class TogDotInfo {
 		mPoint = point;
 		mLatLng = latLng;
 		mClusterItems = new ArrayList<>();
+	}
+
+	public String getFirstMarkerIcon() {
+		return firstMarkerIcon;
+	}
+
+	public void setFirstMarkerIcon(String firstMarkerIcon) {
+		this.firstMarkerIcon = firstMarkerIcon;
 	}
 
 	void addClusterItem(Marker clusterItem) {

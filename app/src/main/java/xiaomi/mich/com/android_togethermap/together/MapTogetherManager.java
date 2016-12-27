@@ -21,10 +21,12 @@ import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
+import com.koushikdutta.ion.Ion;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 import xiaomi.mich.com.android_togethermap.model.DotInfo;
 import xiaomi.mich.com.android_togethermap.utils.DisplayUtil;
@@ -67,7 +69,7 @@ public class MapTogetherManager {
     /**
      * 更新聚合网点
      */
-    public void onMapLoadedUpdateMarker(final Map<String, Marker> markerMap) {
+    public void onMapLoadedUpdateMarker(/*final Map<String, Marker> markerMap*/final Map<String, ClusterAmapItem> markerMap) {
         // 清空内存聚合网点数据
         togDotInfoMap.clear();
         togMarkerMap.clear();
@@ -76,7 +78,8 @@ public class MapTogetherManager {
             public void run() {
                 synchronized (lockObject) {
                     Log.i(TAG, "开始循环遍历,执行网点聚合操作...");
-                    Iterator<Map.Entry<String, Marker>> iterator = markerMap.entrySet().iterator();
+                    Iterator<Map.Entry<String, ClusterAmapItem>> iterator = markerMap.entrySet().iterator();
+//                    Iterator<Map.Entry<String, Marker>> iterator = markerMap.entrySet().iterator();
                     // 循环遍历在已有的聚合基础上，对添加的单个元素进行聚合
                     while (iterator.hasNext()) {
                         assignSingleCluster(iterator.next().getValue());
@@ -98,7 +101,8 @@ public class MapTogetherManager {
     /**
      * 在已有的聚合基础上，对添加的单个元素进行聚合
      */
-    private void assignSingleCluster(Marker marker) {
+    private void assignSingleCluster(/*Marker marker*/ClusterAmapItem clusterAmapItem) {
+        Marker marker = clusterAmapItem.getMarker();
         DotInfo dotInfo = (DotInfo) marker.getObject();
         LatLng latLng = new LatLng(dotInfo.getDotLat(), dotInfo.getDotLon());
 
@@ -113,6 +117,7 @@ public class MapTogetherManager {
             // 更新聚合网点个数
             togDotInfo.setDotCount(1);
             togDotInfo.addClusterItem(marker);
+            togDotInfo.setFirstMarkerIcon(clusterAmapItem.getMarkerUrl());
             togDotInfoMap.put(dotInfo.getDotId() + SystemClock.currentThreadTimeMillis(), togDotInfo);
         }
     }
@@ -125,7 +130,16 @@ public class MapTogetherManager {
     private void addTogDotInfoToMap(String dotId, TogDotInfo togDotInfo) {
         LatLng latlng = togDotInfo.getCenterLatLng();
         MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.anchor(0.5f, 0.5f).icon(getBitmapDes(togDotInfo)).position(latlng);
+        markerOptions.anchor(0.5f, 0.5f);
+        try {
+            markerOptions.icon( togDotInfo.getDotCount()==1?BitmapDescriptorFactory.fromBitmap(Ion.with(mContext)
+                    .load(togDotInfo.getFirstMarkerIcon()).asBitmap().get()):getBitmapDes(togDotInfo));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        markerOptions .position(latlng);
         Marker marker = aMap.addMarker(markerOptions);
         togMarkerMap.put(dotId, marker);
     }
