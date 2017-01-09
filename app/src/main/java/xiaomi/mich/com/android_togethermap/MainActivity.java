@@ -264,10 +264,6 @@ public class MainActivity extends AppCompatActivity {
         aMap.moveCamera(CameraUpdateFactory.newLatLngBounds(builder.build(), 100));
         Log.d("tag","size:"+markerMap.size());
 
-        aMap.clear();
-        // 更新聚合marker
-//        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(markerMap);
-        MapTogetherManager.getInstance(this, aMap).onMapLoadedUpdateMarker(mClusterAmapItemMap);
     }
 
     /**
