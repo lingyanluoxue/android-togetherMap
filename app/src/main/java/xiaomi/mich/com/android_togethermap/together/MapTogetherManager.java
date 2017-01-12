@@ -46,6 +46,8 @@ public class MapTogetherManager {
     private Activity mContext;
     private AMap aMap;
 
+    private static final int[] BUCKETS = {10, 20, 50, 100, 200, 500, 1000};
+
 
     public static MapTogetherManager instance = null;
 
@@ -150,7 +152,7 @@ public class MapTogetherManager {
      **/
     private BitmapDescriptor getBitmapDes(final TogDotInfo togDotInfo) {
         TextView textView = new TextView(mContext);
-        String tile = String.valueOf(togDotInfo.getDotCount());
+        String tile = getClusterText(getBucket(togDotInfo.getDotCount()));
         textView.setText(tile + "");
         textView.setGravity(Gravity.CENTER);
 
@@ -159,6 +161,30 @@ public class MapTogetherManager {
         textView.setBackgroundDrawable(getDrawAble(togDotInfo.getDotCount()));
         togDotInfo.setTextView(textView);
         return BitmapDescriptorFactory.fromView(textView);
+    }
+
+
+    protected String getClusterText(int bucket) {
+        if (bucket < BUCKETS[0]) {
+            return String.valueOf(bucket);
+        }
+        return String.valueOf(bucket) + "+";
+    }
+
+    /**
+     * Gets the "bucket" for a particular cluster. By default, uses the number of points within the
+     * cluster, bucketed to some set points.
+     */
+    protected int getBucket(int size) {
+        if (size <= BUCKETS[0]) {
+            return size;
+        }
+        for (int i = 0; i < BUCKETS.length - 1; i++) {
+            if (size < BUCKETS[i + 1]) {
+                return BUCKETS[i];
+            }
+        }
+        return BUCKETS[BUCKETS.length - 1];
     }
 
     /**
